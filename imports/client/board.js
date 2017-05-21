@@ -21,6 +21,14 @@ export default class Board extends React.Component {
         alert(String(e));
       }
     });
+
+    canvas.on('object:modified', async ({ target: fabricObject }) => {
+      try {
+        await FabricObjects.genUpdate(fabricObject.id, fabricObject.toObject());
+      } catch (e) {
+        alert(String(e));
+      }
+    });
   }
 
   componentWillUpdate(nextProps) {
