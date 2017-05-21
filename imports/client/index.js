@@ -1,5 +1,6 @@
 import React from 'react';
 
+import AccountsUI from './accounts-ui';
 import Board from './board';
 import FabricObjects from '../lib/fabric-objects';
 
@@ -17,10 +18,13 @@ export default class App extends React.Component {
   }
 
   render() {
+    console.log('params', this.props.match.params);
+
     const { isDrawingMode } = this.state;
     return (
       <div>
         <h1>Whiteboard</h1>
+        <AccountsUI />
         <Board
           isDrawingMode={isDrawingMode}
         />

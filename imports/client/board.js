@@ -1,3 +1,4 @@
+import { createContainer } from 'meteor/react-meteor-data';
 import { fabric } from 'fabric';
 import { findDOMNode } from 'react-dom';
 import { Meteor } from 'meteor/meteor';
@@ -5,9 +6,7 @@ import React from 'react';
 
 import FabricObjects from '../lib/fabric-objects';
 
-Meteor.subscribe('fabricObjects');
-
-export default class Board extends React.Component {
+class Board extends React.Component {
   componentDidMount() {
     const canvas = new fabric.Canvas(findDOMNode(this), {
       isDrawingMode: this.props.isDrawingMode,
@@ -37,7 +36,7 @@ export default class Board extends React.Component {
       }
     });
 
-    FabricObjects.find().observeChanges({
+    this._fabricObjectsChangesHandle = this.props.fabricObjectsCursor.observeChanges({
       added(id, doc) {
         const objectOnCanvas = canvas.getObjectById(id);
         if (objectOnCanvas) {
@@ -73,12 +72,23 @@ export default class Board extends React.Component {
     this._canvas.isDrawingMode = nextProps.isDrawingMode;
   }
 
+  componentWillUnmount() {
+    this._fabricObjectsChangesHandle.stop();
+  }
+
   render() {
     return (
       <canvas width="800" height="200"></canvas>
     );
   }
 }
+
+export default createContainer(() => {
+  return {
+    objectsHandle: Meteor.subscribe('fabricObjects'),
+    fabricObjectsCursor: FabricObjects.find(),
+  };
+}, Board);
 
 /**
  * @example canvas.getObjectById(id)
