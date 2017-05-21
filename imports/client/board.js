@@ -2,6 +2,7 @@ import { createContainer } from 'meteor/react-meteor-data';
 import { fabric } from 'fabric';
 import { findDOMNode } from 'react-dom';
 import { Meteor } from 'meteor/meteor';
+import { Random } from 'meteor/random';
 import React from 'react';
 
 import FabricObjects from '../lib/fabric-objects';
@@ -20,9 +21,17 @@ class Board extends React.Component {
         return;
       }
 
-      try { // we use genInsert and not insert to catch any potential errors
-        const id = await FabricObjects.genInsert(fabricObject.toObject());
+      try {
+        const id = Random.id();
         fabricObject.id = id;
+
+        const doc = Object.assign({
+          boardId: this.props.id,
+          _id: id,
+        }, fabricObject.toObject());
+
+        // we use genInsert and not insert to catch any potential errors
+        await FabricObjects.genInsert(doc);
       } catch (e) {
         alert(String(e));
       }
@@ -36,7 +45,18 @@ class Board extends React.Component {
       }
     });
 
-    this._fabricObjectsChangesHandle = this.props.fabricObjectsCursor.observeChanges({
+    this._observeDbChanges(this.props.fabricObjectsCursor);
+  }
+
+  _observeDbChanges(cursor) {
+    if (this._fabricObjectsChangesHandle) {
+      this._fabricObjectsChangesHandle.stop();
+    }
+
+    const canvas = this._canvas;
+    canvas.clear();
+
+    this._fabricObjectsChangesHandle = cursor.observeChanges({
       added(id, doc) {
         const objectOnCanvas = canvas.getObjectById(id);
         if (objectOnCanvas) {
@@ -55,7 +75,7 @@ class Board extends React.Component {
         }
 
         fabricObject.set(fields);
-        canvas.renderAll();
+        canvas.deactivateAll().renderAll();
       },
       removed(id) {
         const fabricObject = canvas.getObjectById(id);
@@ -64,12 +84,16 @@ class Board extends React.Component {
         }
 
         canvas.remove(fabricObject);
+        canvas.renderAll();
       },
     });
   }
 
   componentWillUpdate(nextProps) {
     this._canvas.isDrawingMode = nextProps.isDrawingMode;
+    if (this.props.id !== nextProps.id) {
+      this._observeDbChanges(nextProps.fabricObjectsCursor);
+    }
   }
 
   componentWillUnmount() {
@@ -83,10 +107,10 @@ class Board extends React.Component {
   }
 }
 
-export default createContainer(() => {
+export default createContainer(({ id: boardId }) => {
   return {
-    objectsHandle: Meteor.subscribe('fabricObjects'),
-    fabricObjectsCursor: FabricObjects.find(),
+    fabricObjectsHandle: Meteor.subscribe('fabricObjects', boardId),
+    fabricObjectsCursor: FabricObjects.find({ boardId }),
   };
 }, Board);
 

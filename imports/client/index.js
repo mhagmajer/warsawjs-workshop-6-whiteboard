@@ -8,6 +8,10 @@ if (Meteor.isDevelopment) {
   global.FabricObjects = FabricObjects;
 }
 
+import {
+  Link,
+} from 'react-router-dom';
+
 export default class App extends React.Component {
   constructor(props) {
     super(props);
@@ -17,15 +21,23 @@ export default class App extends React.Component {
     };
   }
 
-  render() {
-    console.log('params', this.props.match.params);
+  _clearBoard() {
+    const { id: boardId } = this.props.match.params;
+    Meteor.call('clearBoard', boardId);
+  }
+
+  _renderBoardWithControls() {
+    const { id: boardId } = this.props.match.params;
+    if (!boardId) {
+      return null;
+    }
 
     const { isDrawingMode } = this.state;
+
     return (
       <div>
-        <h1>Whiteboard</h1>
-        <AccountsUI />
         <Board
+          id={boardId}
           isDrawingMode={isDrawingMode}
         />
         <label>
@@ -40,6 +52,24 @@ export default class App extends React.Component {
           />
           Drawing mode
         </label>
+        <button onClick={() => this._clearBoard()}>
+          Czyść tablicę
+        </button>
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      <div>
+        <h1>Whiteboard</h1>
+        <AccountsUI />
+        <button
+          onClick={() => {
+            this.props.history.push(`/board/${Random.id()}`);
+          }}
+        >Nowa sesja</button>
+        {this._renderBoardWithControls()}
       </div>
     );
   }
